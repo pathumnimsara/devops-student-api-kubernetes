@@ -1,0 +1,66 @@
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: student-api
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: student-api
+  template:
+    metadata:
+      labels:
+        app: student-api
+    spec:
+      containers:
+        - name: student-api
+          image: pathumnimsara/student-api:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3001
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "256Mi"
+          env:
+            - name: MONGO_URL
+              value: mongodb://mongodb:27017
+            - name: APP_ENV
+              valueFrom:
+                configMapKeyRef:
+                  name: student-api-config
+                  key: APP_ENV
+            - name: DEMO_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: student-api-secret
+                  key: DEMO_TOKEN
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 3001
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 3001
+            initialDelaySeconds: 15
+            periodSeconds: 20
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: student-api
+spec:
+  type: NodePort
+  selector:
+    app: student-api
+  ports:
+    - port: 3001
+      targetPort: 3001
+      nodePort: 30001
